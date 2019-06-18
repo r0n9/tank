@@ -251,6 +251,8 @@ func ListDir(dirPath string) (files []string, dirs []string, err error) {
 	for _, fi := range dir {
 		if fi.IsDir() {
 			dirs = append(dirs, dirPath+PathSep+fi.Name())
+		} else if fi.Mode()&os.ModeSymlink != 0 {
+			dirs = append(dirs, dirPath+PathSep+fi.Name())
 		} else {
 			files = append(files, dirPath+PathSep+fi.Name())
 		}

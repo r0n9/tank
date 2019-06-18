@@ -541,7 +541,7 @@ func (this *MatterService) refreshDirectory(request *http.Request, dirMatter *Ma
 				Username: user.Username,
 				Dir:      false,
 				Name:     name,
-				Privacy:  false,
+				Privacy:  true,
 				Path:     relativePath,
 			}
 			matter = this.matterDao.Create(matter)
