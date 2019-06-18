@@ -71,6 +71,7 @@ func (this *MatterController) RegisterRoutes() map[string]func(writer http.Respo
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
 	routeMap["/api/matter/create/directory"] = this.Wrap(this.CreateDirectory, USER_ROLE_USER)
+	routeMap["/api/matter/refresh/directory"] = this.Wrap(this.RefreshDirectory, USER_ROLE_USER)
 	routeMap["/api/matter/upload"] = this.Wrap(this.Upload, USER_ROLE_USER)
 	routeMap["/api/matter/crawl"] = this.Wrap(this.Crawl, USER_ROLE_USER)
 	routeMap["/api/matter/delete"] = this.Wrap(this.Delete, USER_ROLE_USER)
@@ -216,6 +217,19 @@ func (this *MatterController) CreateDirectory(writer http.ResponseWriter, reques
 	var dirMatter = this.matterDao.CheckWithRootByUuid(puuid, user)
 
 	matter := this.matterService.AtomicCreateDirectory(request, dirMatter, name, user)
+	return this.Success(matter)
+}
+
+func (this *MatterController) RefreshDirectory(writer http.ResponseWriter, request *http.Request) *result.WebResult {
+
+	puuid := request.FormValue("puuid")
+
+	user := this.checkUser(request)
+
+	var dirMatter = this.matterDao.CheckWithRootByUuid(puuid, user)
+
+	matter := this.matterService.AtomicRefreshDirectory(request, dirMatter, user)
+
 	return this.Success(matter)
 }
 

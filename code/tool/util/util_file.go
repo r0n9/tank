@@ -239,3 +239,22 @@ func UniformPath(p string) string {
 	p = strings.TrimSuffix(p, "/")
 	return p
 }
+
+func ListDir(dirPath string) (files []string, dirs []string, err error) {
+	dir, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		panic(result.BadRequest("occur error while reading %s %s", dirPath, err.Error()))
+	}
+
+	PathSep := string(os.PathSeparator)
+
+	for _, fi := range dir {
+		if fi.IsDir() {
+			dirs = append(dirs, dirPath+PathSep+fi.Name())
+		} else {
+			files = append(files, dirPath+PathSep+fi.Name())
+		}
+	}
+
+	return files, dirs, nil
+}

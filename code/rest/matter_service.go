@@ -508,12 +508,86 @@ func (this *MatterService) createDirectory(request *http.Request, dirMatter *Mat
 	return matter
 }
 
+//inner refresh directory.
+func (this *MatterService) refreshDirectory(request *http.Request, dirMatter *Matter, user *User) *Matter {
+
+	if dirMatter == nil {
+		panic(result.BadRequest("dirMatter cannot be nil"))
+	}
+
+	if !dirMatter.Dir {
+		panic(result.BadRequest("dirMatter must be directory"))
+	}
+
+	if dirMatter.UserUuid != user.Uuid {
+		panic(result.BadRequest("file's user not the same"))
+	}
+
+	files, dirs, err := util.ListDir(dirMatter.AbsolutePath())
+	if err != nil {
+		panic(result.BadRequest("occur error while reading %s %s", dirMatter.Path, err.Error()))
+
+	}
+
+	for _, file := range files {
+		name := util.GetFilenameOfPath(file)
+		relativePath := dirMatter.Path + "/" + name
+		matter := this.matterDao.FindByUserUuidAndPuuidAndDirAndName(user.Uuid, dirMatter.Uuid, false, name)
+		if matter == nil {
+			//create in db
+			matter = &Matter{
+				Puuid:    dirMatter.Uuid,
+				UserUuid: user.Uuid,
+				Username: user.Username,
+				Dir:      false,
+				Name:     name,
+				Privacy:  false,
+				Path:     relativePath,
+			}
+			matter = this.matterDao.Create(matter)
+		}
+	}
+
+	for _, dir := range dirs {
+		name := util.GetFilenameOfPath(dir)
+		relativePath := dirMatter.Path + "/" + name
+		matter := this.matterDao.FindByUserUuidAndPuuidAndDirAndName(user.Uuid, dirMatter.Uuid, true, name)
+		if matter == nil {
+			//create in db
+			matter = &Matter{
+				Puuid:    dirMatter.Uuid,
+				UserUuid: user.Uuid,
+				Username: user.Username,
+				Dir:      true,
+				Name:     name,
+				Path:     relativePath,
+			}
+			matter = this.matterDao.Create(matter)
+		}
+
+		this.refreshDirectory(request, matter, user)
+
+	}
+
+	return dirMatter
+}
+
 func (this *MatterService) AtomicCreateDirectory(request *http.Request, dirMatter *Matter, name string, user *User) *Matter {
 
 	this.userService.MatterLock(user.Uuid)
 	defer this.userService.MatterUnlock(user.Uuid)
 
 	matter := this.createDirectory(request, dirMatter, name, user)
+
+	return matter
+}
+
+func (this *MatterService) AtomicRefreshDirectory(request *http.Request, dirMatter *Matter, user *User) *Matter {
+
+	this.userService.MatterLock(user.Uuid)
+	defer this.userService.MatterUnlock(user.Uuid)
+
+	matter := this.refreshDirectory(request, dirMatter, user)
 
 	return matter
 }
